@@ -1,5 +1,6 @@
-const messenger = require('../services/messengerService');
-const logger    = require('../utils/logger');
+const messenger  = require('../services/messengerService');
+const logger     = require('../utils/logger');
+const { askGroq } = require('../services/groqService');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // QUALISEARCH KNOWLEDGE BASE
@@ -300,13 +301,29 @@ const handleThanks = async (senderId) => {
 };
 
 const handleFallback = async (senderId, originalText) => {
-  logger.info('Fallback triggered', { senderId, originalText });
+  logger.info('Fallback triggered — trying Groq AI', { senderId, originalText });
 
+  // ── Try Groq AI first ────────────────────────────────────────────────────
+  // Only kicks in when keyword matching finds nothing.
+  // If Groq_API env var is missing or the call fails, gracefully falls through.
+  await messenger.sendTypingOn(senderId);
+  await pause(1000);
+
+  const aiReply = await askGroq(originalText);
+
+  if (aiReply) {
+    await messenger.sendTextMessage(senderId, aiReply);
+    await pause(700);
+    await sendMainMenu(senderId);
+    return;
+  }
+
+  // ── Groq unavailable — friendly fallback ─────────────────────────────────
   const empathyLines = [
     'Hmm, I want to make sure I give you the right answer — let me point you to the right option! 😊',
-    'That\'s a great question! I just want to make sure I understand — let me show you the options that might help.',
-    'I hear you! I may not have caught exactly what you need, but I think one of these will help you out. 👇',
-    'I want to make sure I help you correctly! Let me show you the topics I can assist with. 🙂',
+    'That\'s a great one! Let me show you the options that might help. 👇',
+    'I hear you! Let me show you what I can help you with. 👇',
+    'I want to make sure I help you correctly! Here are the topics I can assist with. 🙂',
   ];
 
   await messenger.sendTextMessage(senderId, pick(empathyLines));

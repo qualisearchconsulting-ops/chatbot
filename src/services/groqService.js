@@ -1,0 +1,91 @@
+const Groq = require('groq-sdk');
+const logger = require('../utils/logger');
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GROQ AI SERVICE
+// Only called when keyword matching fails in messageHandler.
+// Answers in the context of QualiSearch — like a knowledgeable, friendly staff.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const SYSTEM_PROMPT = `You are a friendly and helpful customer support assistant for QualiSearch — an interdisciplinary research and knowledge institution based in the Philippines, committed to ethical scholarship, credible academic publishing, professional development, and meaningful social impact.
+
+Your role is to assist users who message the QualiSearch Facebook page. You answer questions conversationally, warmly, and in plain language — like a helpful staff member, not a robot.
+
+Key facts about QualiSearch you must know:
+- Website: https://qualisearchglobal.com/
+- Main service: Academic Press — credible journal publications, primarily the QualiSearch Journal of Educational Research and Practice (QJERP)
+- Publication fee: ₱5,000 for regular articles in QJERP. Special issue rates may vary.
+- Payment is made ONLY after manuscript acceptance — payment does not guarantee acceptance.
+- Submission process: Register an account → choose a journal → submit via the Academic Press platform on the website.
+- Publication stages: Account Registration → Manuscript Submission → Initial Editorial Screening → Peer Review → Author Revision → Final Evaluation → Acceptance → Payment → Copyediting → Layout Preparation → Author Proofreading → Online Publication.
+- Manuscript status: Authors can check via their online account or by contacting the editorial team with: manuscript title, author name, journal name, submission date.
+- Other services: Professional Development (trainings/workshops), Research Services, Social Impact Programs.
+
+Rules:
+1. Always respond in the same language the user wrote in (Filipino/Tagalog, English, or mixed). If they write in Tagalog, reply in Tagalog.
+2. Keep answers short, warm, and conversational — 2 to 5 sentences max unless a step-by-step is needed.
+3. If you don't know the specific answer, politely direct them to https://qualisearchglobal.com/ or suggest they contact the QualiSearch team directly.
+4. Never make up fees, dates, or policies you are not sure about.
+5. End with a helpful follow-up offer like "May iba pa ba akong maitutulong?" or "Is there anything else I can help you with?"
+6. Do NOT use markdown formatting (no bold **, no bullet - lists with dashes). Use plain text and emojis naturally.`;
+
+let groqClient = null;
+
+/**
+ * Lazy-initialize the Groq client so the app still boots
+ * even if GROQ_API is not set (it just won't use AI fallback).
+ */
+const getClient = () => {
+  if (!groqClient) {
+    const apiKey = process.env.Groq_API;
+    if (!apiKey) return null;
+    groqClient = new Groq({ apiKey });
+  }
+  return groqClient;
+};
+
+/**
+ * Ask Groq AI to answer a user message within the QualiSearch context.
+ * Returns the AI's reply as a string, or null if unavailable/error.
+ *
+ * @param {string} userMessage - The raw message the user sent
+ * @returns {Promise<string|null>}
+ */
+const askGroq = async (userMessage) => {
+  const client = getClient();
+
+  if (!client) {
+    logger.warn('Groq AI skipped — Groq_API env var not set');
+    return null;
+  }
+
+  try {
+    logger.info('Calling Groq AI fallback', { userMessage });
+
+    const completion = await client.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        { role: 'system',  content: SYSTEM_PROMPT },
+        { role: 'user',    content: userMessage   },
+      ],
+      max_tokens: 300,
+      temperature: 0.7,
+    });
+
+    const reply = completion.choices?.[0]?.message?.content?.trim();
+
+    if (!reply) {
+      logger.warn('Groq returned empty response');
+      return null;
+    }
+
+    logger.info('Groq AI responded successfully');
+    return reply;
+
+  } catch (error) {
+    logger.error('Groq AI call failed', { error: error.message });
+    return null;
+  }
+};
+
+module.exports = { askGroq };
