@@ -1,0 +1,27 @@
+# Render.com Deployment Configuration
+# This file tells Render how to build and run your webhook server.
+# Push this to GitHub, then connect repo to Render — done!
+
+services:
+  - type: web
+    name: qualisearch-facebook-webhook
+    env: node
+    region: singapore  # Closest to Philippines 🇵🇭
+    plan: free          # Free tier (spins down after 15min inactivity)
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+
+    # Environment variables — set these in Render Dashboard
+    # Go to: Render Dashboard → Your Service → Environment
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: PAGE_ACCESS_TOKEN
+        sync: false        # You fill this in Render dashboard
+      - key: VERIFY_TOKEN
+        sync: false        # You fill this in Render dashboard
+      - key: APP_SECRET
+        sync: false        # You fill this in Render dashboard
