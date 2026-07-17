@@ -350,7 +350,7 @@ const sendArticleSubmission = async (senderId) => {
   await pause(1200);
   await messenger.sendTextMessage(
     senderId,
-    '1️⃣ Head over to www.qualisearchjournal.org\n' +
+    '1️⃣ Head over to https://qualisearchglobal.com/\n' +
     '2️⃣ Click on Academic Press from the QualiSearch Pillars of Innovation\n' +
     '3️⃣ Choose the journal that fits your manuscript\n' +
     '4️⃣ Create your author account on the submission platform\n' +
@@ -381,7 +381,7 @@ const sendAccountInfo = async (senderId) => {
     '• Get notified by the editorial team 📬\n' +
     '• Upload revisions when needed ✏️\n' +
     '• Track the progress of your submission 🔍\n\n' +
-    'To get started, visit www.qualisearchjournal.org, select Academic Press, choose your journal, and look for the registration or submission portal. Easy! 😊'
+    'To get started, visit https://qualisearchglobal.com/, select Academic Press, choose your journal, and look for the registration or submission portal. Easy! 😊'
   );
   await pause(600);
   await sendMainMenu(senderId);
@@ -477,7 +477,7 @@ const sendManuscriptStatus = async (senderId) => {
   await messenger.sendTextMessage(
     senderId,
     'You have two options:\n\n' +
-    '1️⃣ Online — Log in to your QualiSearch Academic Press author account at www.qualisearchjournal.org to view your submission status anytime.\n\n' +
+    '1️⃣ Online — Log in to your QualiSearch Academic Press author account at https://qualisearchglobal.com/ to view your submission status anytime.\n\n' +
     '2️⃣ Contact the Editorial Team — Reach out directly and provide:\n' +
     '   📌 Your manuscript title\n' +
     '   📌 Your full name (corresponding author)\n' +
@@ -503,7 +503,7 @@ const sendJournalGuidelines = async (senderId) => {
   await messenger.sendTextMessage(
     senderId,
     'The most up-to-date guidelines, formatting requirements, and calls for papers are all available on the official website:\n\n' +
-    '🌐 www.qualisearchjournal.org\n\n' +
+    '🌐 https://qualisearchglobal.com/\n\n' +
     'Here\'s how to navigate there:\n' +
     '1️⃣ Select Academic Press from the Pillars of Innovation\n' +
     '2️⃣ Choose your preferred journal\n' +
@@ -533,7 +533,7 @@ const sendProgramsServices = async (senderId) => {
     '🔬 Research Services — Ethical and high-quality scholarly research\n' +
     '🌍 Social Impact Programs — Meaningful community and societal engagement\n\n' +
     'For full details on all programs, partnerships, and upcoming calls for papers:\n' +
-    '🌐 www.qualisearchjournal.org\n\n' +
+    '🌐 https://qualisearchglobal.com/\n\n' +
     'There\'s a lot happening — definitely worth checking out! 😊'
   );
   await pause(600);
@@ -556,7 +556,7 @@ const sendContactSupport = async (senderId) => {
     'Here are the official contact details for QualiSearch Academic Press:\n\n' +
     '📧 Email: qualisearchconsulting@gmail.com\n' +
     '📱 Mobile: +639173039530\n' +
-    '🌐 Website: www.qualisearchjournal.org\n' +
+    '🌐 Website: https://qualisearchglobal.com/\n' +
     '📍 Address: B12 L55 Oregano Street, Tagaytay Heights Subdivision, Tagaytay City, Cavite 4120, Philippines\n\n' +
     'When reaching out, it helps to include:\n' +
     '• Your full name\n' +
@@ -581,7 +581,7 @@ const sendWebsiteInfo = async (senderId) => {
   await pause(900);
   await messenger.sendTextMessage(
     senderId,
-    '👉 www.qualisearchjournal.org\n\n' +
+    '👉 https://qualisearchglobal.com/\n\n' +
     'From there you can explore Academic Press, browse journals, check submission guidelines, and find contact information.\n\n' +
     'You can also reach the team directly:\n' +
     '📧 qualisearchconsulting@gmail.com\n' +
