@@ -6,7 +6,7 @@ const { startKeepAlive } = require('./utils/keepAlive');
 const PORT = process.env.PORT || 3000;
 
 // Validate required environment variables before starting
-const requiredEnvVars = ['PAGE_ACCESS_TOKEN', 'VERIFY_TOKEN', 'APP_SECRET'];
+const requiredEnvVars = ['PAGE_ACCESS_TOKEN', 'VERIFY_TOKEN'];
 const missingVars = requiredEnvVars.filter((v) => !process.env[v]);
 
 if (missingVars.length > 0) {
@@ -15,6 +15,11 @@ if (missingVars.length > 0) {
       'Please copy .env.example to .env and fill in the values.'
   );
   process.exit(1);
+}
+
+// Optional: APP_SECRET enables HMAC-SHA256 signature verification
+if (!process.env.APP_SECRET) {
+  logger.warn('⚠️  APP_SECRET not set — webhook signature verification is DISABLED');
 }
 
 const server = app.listen(PORT, () => {

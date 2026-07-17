@@ -10,6 +10,14 @@ const logger = require('../utils/logger');
  * request is forged and should be rejected.
  */
 const verifySignature = (req, res, next) => {
+  const appSecret = process.env.APP_SECRET;
+
+  // If APP_SECRET is not configured, skip signature verification
+  if (!appSecret) {
+    logger.warn('APP_SECRET not set — skipping signature verification (not recommended for production)');
+    return next();
+  }
+
   const signature = req.headers['x-hub-signature-256'];
 
   if (!signature) {
@@ -18,12 +26,6 @@ const verifySignature = (req, res, next) => {
       path: req.path,
     });
     return res.status(401).json({ error: 'Missing signature header' });
-  }
-
-  const appSecret = process.env.APP_SECRET;
-  if (!appSecret) {
-    logger.error('APP_SECRET is not configured in environment variables');
-    return res.status(500).json({ error: 'Server configuration error' });
   }
 
   // Compute our expected signature
