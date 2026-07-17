@@ -472,8 +472,14 @@ const sendManuscriptStatus = async (senderId) => {
 
   await messenger.sendTextMessage(senderId, pick(intros));
   await pause(900);
+  
   await messenger.sendTypingOn(senderId);
-  await pause(1100);
+  await pause(1500);
+  await messenger.sendTextMessage(senderId, 'You can check status on website also!');
+
+  await pause(1000);
+  await messenger.sendTypingOn(senderId);
+  await pause(2000);
   await messenger.sendTextMessage(
     senderId,
     'You have two options:\n\n' +
