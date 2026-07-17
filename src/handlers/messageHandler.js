@@ -465,9 +465,9 @@ const sendWhenToPay = async (senderId) => {
 
 const sendManuscriptStatus = async (senderId) => {
   const intros = [
-    'Of course! Here\'s how you can check on your submission. 📊',
-    'Sure! There are a couple of ways to track your manuscript. 📊',
-    'No problem! Let me show you how to check your manuscript\'s status. 📊',
+    'Of course! Here\'s how you can check on your submission.',
+    'Sure! There are a couple of ways to track your manuscript.',
+    'No problem! Let me show you how to check your manuscript\'s status.',
   ];
 
   await messenger.sendTextMessage(senderId, pick(intros));
@@ -475,7 +475,7 @@ const sendManuscriptStatus = async (senderId) => {
   
   await messenger.sendTypingOn(senderId);
   await pause(1500);
-  await messenger.sendTextMessage(senderId, 'You can check status on website also!');
+  await messenger.sendTextMessage(senderId, 'You can check status on the website also!');
 
   await pause(1000);
   await messenger.sendTypingOn(senderId);
@@ -483,13 +483,13 @@ const sendManuscriptStatus = async (senderId) => {
   await messenger.sendTextMessage(
     senderId,
     'You have two options:\n\n' +
-    '1️⃣ Online — Log in to your QualiSearch Academic Press author account at https://qualisearchglobal.com/ to view your submission status anytime.\n\n' +
-    '2️⃣ Contact the Editorial Team — Reach out directly and provide:\n' +
-    '   📌 Your manuscript title\n' +
-    '   📌 Your full name (corresponding author)\n' +
-    '   📌 Journal name\n' +
-    '   📌 Date of submission\n\n' +
-    'A representative will get back to you as soon as they can! 😊'
+    '1. Online — Log in to your QualiSearch Academic Press author account at https://qualisearchglobal.com/ to view your submission status anytime.\n\n' +
+    '2. Contact the Editorial Team — Reach out directly and provide:\n' +
+    '   - Your manuscript title\n' +
+    '   - Your full name (corresponding author)\n' +
+    '   - Journal name\n' +
+    '   - Date of submission\n\n' +
+    'A representative will get back to you as soon as they can!'
   );
   await pause(600);
   await sendMainMenu(senderId);
