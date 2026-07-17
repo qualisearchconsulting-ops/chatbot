@@ -25,7 +25,8 @@ const pause = (ms = 900) => new Promise((resolve) => setTimeout(resolve, ms));
  * Return a time-aware greeting phrase based on the current local hour.
  */
 const getTimeGreeting = () => {
-  const hour = new Date().getHours();
+  // Use UTC+8 (Philippine Time) as the reference for greetings
+  const hour = (new Date().getUTCHours() + 8) % 24;
   if (hour >= 5  && hour < 12) return 'Good morning';
   if (hour >= 12 && hour < 17) return 'Good afternoon';
   if (hour >= 17 && hour < 21) return 'Good evening';
