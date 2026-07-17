@@ -1,29 +1,88 @@
 const messenger = require('../services/messengerService');
-const logger = require('../utils/logger');
+const logger    = require('../utils/logger');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // QUALISEARCH KNOWLEDGE BASE
 // All official responses sourced from QualiSearch Global (qualisearchglobal.com)
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── Utility helpers ──────────────────────────────────────────────────────────
+
 /**
- * Send the main menu with quick reply options.
+ * Return a random item from an array, so responses feel varied and less scripted.
  */
-const sendMainMenu = async (senderId) => {
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+/**
+ * Simulate a human-like typing pause before sending a reply.
+ * Short messages → short pause; longer content → slightly longer pause.
+ * @param {number} ms - milliseconds to wait (default: 900 ms)
+ */
+const pause = (ms = 900) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Return a time-aware greeting phrase based on the current local hour.
+ */
+const getTimeGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour >= 5  && hour < 12) return 'Good morning';
+  if (hour >= 12 && hour < 17) return 'Good afternoon';
+  if (hour >= 17 && hour < 21) return 'Good evening';
+  return 'Hello';
+};
+
+/**
+ * Fetch the user's first name from the Messenger Profile API.
+ * Falls back to null if unavailable (e.g., privacy settings).
+ */
+const getFirstName = async (senderId) => {
+  try {
+    const profile = await messenger.getUserProfile(senderId);
+    return profile?.first_name || null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Build a warm, personalised salutation.
+ * @param {string|null} firstName
+ */
+const salutation = (firstName) =>
+  firstName ? `, ${firstName}` : '';
+
+// ── Follow-up prompts (randomly picked to avoid repetition) ──────────────────
+const FOLLOW_UP_PROMPTS = [
+  'Is there anything else I can help you with? 😊',
+  'Feel free to ask if you have more questions!',
+  'Let me know if there\'s anything else on your mind. 🙂',
+  'Happy to help with anything else — just say the word!',
+  'Is there something else I can assist you with today?',
+];
+
+/**
+ * Send the main menu with a human-sounding follow-up prompt.
+ */
+const sendMainMenu = async (senderId, customPrompt = null) => {
+  const prompt = customPrompt || pick(FOLLOW_UP_PROMPTS);
   await messenger.sendQuickReplies(
     senderId,
-    'Please select your concern:',
+    prompt,
     [
       { content_type: 'text', title: '📝 Article Submission',   payload: 'ARTICLE_SUBMISSION'   },
       { content_type: 'text', title: '🔄 Publication Process',  payload: 'PUBLICATION_PROCESS'  },
-      { content_type: 'text', title: '💳 Publication Fee',       payload: 'PUBLICATION_FEE'      },
-      { content_type: 'text', title: '📊 Manuscript Status',     payload: 'MANUSCRIPT_STATUS'    },
-      { content_type: 'text', title: '📋 Journal Guidelines',    payload: 'JOURNAL_GUIDELINES'   },
-      { content_type: 'text', title: '🏛️ Programs & Services',  payload: 'PROGRAMS_SERVICES'    },
-      { content_type: 'text', title: '📞 Contact Support',       payload: 'CONTACT_SUPPORT'      },
+      { content_type: 'text', title: '💳 Publication Fee',      payload: 'PUBLICATION_FEE'      },
+      { content_type: 'text', title: '📊 Manuscript Status',    payload: 'MANUSCRIPT_STATUS'    },
+      { content_type: 'text', title: '📋 Journal Guidelines',   payload: 'JOURNAL_GUIDELINES'   },
+      { content_type: 'text', title: '🏛️ Programs & Services', payload: 'PROGRAMS_SERVICES'    },
+      { content_type: 'text', title: '📞 Contact Support',      payload: 'CONTACT_SUPPORT'      },
     ]
   );
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TEXT MESSAGE HANDLER
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Handle a received text message from a user.
@@ -34,16 +93,27 @@ const handleTextMessage = async (senderId, messageText) => {
 
   logger.info('Handling text message', { senderId, text });
 
-  // Show typing indicator while processing
+  // Show typing indicator while we "think"
   await messenger.sendTypingOn(senderId);
+  await pause(700);
 
   // ── Greetings / Welcome ───────────────────────────────────────────────────
-  if (['hi', 'hello', 'hey', 'start', 'get started', 'good morning', 'good afternoon', 'good evening'].some((w) => text.includes(w))) {
-    await messenger.sendTextMessage(
-      senderId,
-      '👋 Hello! Welcome to QualiSearch.\n\nWe are an interdisciplinary research and knowledge institution committed to ethical scholarship, credible academic publishing, professional development, and meaningful social impact.\n\nHow may we assist you today?'
-    );
-    await sendMainMenu(senderId);
+  if (
+    ['hi', 'hello', 'hey', 'start', 'get started', 'good morning',
+     'good afternoon', 'good evening', 'howdy', 'greetings'].some((w) => text.includes(w))
+  ) {
+    await handleWelcome(senderId);
+    return;
+  }
+
+  // ── Gratitude ─────────────────────────────────────────────────────────────
+  if (
+    text.includes('thank') ||
+    text.includes('thanks') ||
+    text.includes('salamat') ||
+    text.includes('appreciate')
+  ) {
+    await handleThanks(senderId);
     return;
   }
 
@@ -78,7 +148,8 @@ const handleTextMessage = async (senderId, messageText) => {
     text.includes('publication process') ||
     text.includes('peer review') ||
     text.includes('editorial') ||
-    text.includes('how long')
+    text.includes('how long') ||
+    text.includes('timeline')
   ) {
     await sendPublicationProcess(senderId);
     return;
@@ -171,17 +242,78 @@ const handleTextMessage = async (senderId, messageText) => {
   }
 
   // ── Menu / Options ────────────────────────────────────────────────────────
-  if (text.includes('menu') || text.includes('option') || text.includes('back') || text.includes('more')) {
-    await sendMainMenu(senderId);
+  if (
+    text.includes('menu') ||
+    text.includes('option') ||
+    text.includes('back') ||
+    text.includes('more')
+  ) {
+    await sendMainMenu(senderId, 'Here\'s what I can help you with — just pick one! 👇');
     return;
   }
 
   // ── Default Fallback ──────────────────────────────────────────────────────
+  await handleFallback(senderId, messageText);
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SPECIAL HANDLERS (welcome, thanks, fallback)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const handleWelcome = async (senderId) => {
+  const firstName  = await getFirstName(senderId);
+  const timeGreet  = getTimeGreeting();
+  const name       = salutation(firstName);
+
+  const openers = [
+    `${timeGreet}${name}! 👋 Great to hear from you!`,
+    `Hey${name}! 😊 ${timeGreet}! So glad you reached out.`,
+    `${timeGreet}${name}! Welcome to QualiSearch — I'm happy you're here!`,
+    `Hi${name}! ${timeGreet} and welcome! 🌟`,
+  ];
+
+  await messenger.sendTextMessage(senderId, pick(openers));
+  await pause(800);
+  await messenger.sendTypingOn(senderId);
+  await pause(1000);
   await messenger.sendTextMessage(
     senderId,
-    `Thank you for your message! 😊\n\nI'm sorry, I didn't quite understand that. Let me show you what I can help you with.`
+    'We\'re QualiSearch — an interdisciplinary research and knowledge institution dedicated to ethical scholarship, credible academic publishing, professional development, and meaningful social impact.\n\nWhat can I help you with today?'
   );
+  await sendMainMenu(senderId, 'Here are some things I can assist you with 👇');
+};
+
+const handleThanks = async (senderId) => {
+  const firstName = await getFirstName(senderId);
+  const name      = salutation(firstName);
+
+  const replies = [
+    `You're so welcome${name}! 😊 It's always a pleasure helping you.`,
+    `Anytime${name}! Don't hesitate to reach out if you need anything else. 🙌`,
+    `Happy to help${name}! That's what I'm here for. 😄`,
+    `Of course${name}! Feel free to come back anytime you have questions. ✨`,
+  ];
+
+  await messenger.sendTextMessage(senderId, pick(replies));
+  await pause(600);
   await sendMainMenu(senderId);
+};
+
+const handleFallback = async (senderId, originalText) => {
+  logger.info('Fallback triggered', { senderId, originalText });
+
+  const empathyLines = [
+    'Hmm, I want to make sure I give you the right answer — let me point you to the right option! 😊',
+    'That\'s a great question! I just want to make sure I understand — let me show you the options that might help.',
+    'I hear you! I may not have caught exactly what you need, but I think one of these will help you out. 👇',
+    'I want to make sure I help you correctly! Let me show you the topics I can assist with. 🙂',
+  ];
+
+  await messenger.sendTextMessage(senderId, pick(empathyLines));
+  await pause(700);
+  await messenger.sendTypingOn(senderId);
+  await pause(800);
+  await sendMainMenu(senderId, 'Which of these are you looking for?');
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -189,82 +321,252 @@ const handleTextMessage = async (senderId, messageText) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const sendArticleSubmission = async (senderId) => {
+  const intros = [
+    'Sure! Here\'s how you can submit your manuscript step by step 📝',
+    'Great! Submitting is pretty straightforward — let me walk you through it! 📝',
+    'Absolutely! Here\'s everything you need to know about submitting your manuscript. 📝',
+  ];
+
+  await messenger.sendTextMessage(senderId, pick(intros));
+  await pause(900);
+  await messenger.sendTypingOn(senderId);
+  await pause(1200);
   await messenger.sendTextMessage(
     senderId,
-    '📝 *How to Submit a Manuscript*\n\nTo submit your manuscript, please follow these steps:\n\n1️⃣ Visit https://qualisearchglobal.com/\n2️⃣ Select *Academic Press* from the QualiSearch Pillars of Innovation\n3️⃣ Choose the appropriate journal for your manuscript\n4️⃣ Create an author account on the Academic Press submission platform\n5️⃣ Log in to your account\n6️⃣ Complete the required manuscript information\n7️⃣ Upload your manuscript and the required supporting documents\n8️⃣ Review your submission details before clicking *Submit*\n\n✅ A confirmation will be sent after your manuscript has been successfully submitted.'
+    '1️⃣ Head over to https://qualisearchglobal.com/\n' +
+    '2️⃣ Click on Academic Press from the QualiSearch Pillars of Innovation\n' +
+    '3️⃣ Choose the journal that fits your manuscript\n' +
+    '4️⃣ Create your author account on the submission platform\n' +
+    '5️⃣ Log in and fill in the required manuscript details\n' +
+    '6️⃣ Upload your manuscript and all supporting documents\n' +
+    '7️⃣ Double-check everything, then hit Submit! ✅\n\n' +
+    'You\'ll receive a confirmation once your submission goes through. Good luck! 🍀'
   );
+  await pause(600);
   await sendMainMenu(senderId);
 };
 
 const sendAccountInfo = async (senderId) => {
+  const intros = [
+    'Yes, you\'ll need an account — but don\'t worry, it\'s quick to set up! 👤',
+    'Good question! Here\'s what you need to know about creating an account. 👤',
+    'You\'ll need to register first — here\'s why it matters and how to do it. 👤',
+  ];
+
+  await messenger.sendTextMessage(senderId, pick(intros));
+  await pause(900);
+  await messenger.sendTypingOn(senderId);
+  await pause(1100);
   await messenger.sendTextMessage(
     senderId,
-    '👤 *Do I Need an Account?*\n\nYes. Authors must create an account on the QualiSearch Academic Press submission platform before submitting a manuscript.\n\nThe account allows authors to:\n• Submit their work\n• Receive editorial notifications\n• Upload revisions\n• Monitor the progress of their manuscript\n\n🌐 *Where to Create an Account:*\nPlease visit https://qualisearchglobal.com/, select *Academic Press*, choose your preferred journal, and proceed to the registration or submission portal.'
+    'Having an account lets you:\n' +
+    '• Submit your manuscript 📄\n' +
+    '• Get notified by the editorial team 📬\n' +
+    '• Upload revisions when needed ✏️\n' +
+    '• Track the progress of your submission 🔍\n\n' +
+    'To get started, visit https://qualisearchglobal.com/, select Academic Press, choose your journal, and look for the registration or submission portal. Easy! 😊'
   );
+  await pause(600);
   await sendMainMenu(senderId);
 };
 
 const sendPublicationProcess = async (senderId) => {
+  const intros = [
+    'Great question! Here\'s a breakdown of the full publication journey from start to finish. 🔄',
+    'Sure! The process has several stages, but I\'ll make it easy to follow. 🔄',
+    'Happy to explain! Here\'s the entire publication process laid out for you. 🔄',
+  ];
+
+  await messenger.sendTextMessage(senderId, pick(intros));
+  await pause(900);
+  await messenger.sendTypingOn(senderId);
+  await pause(1300);
   await messenger.sendTextMessage(
     senderId,
-    '🔄 *Publication Process*\n\nThe publication process generally includes the following steps:\n\n1️⃣ Account Registration\n2️⃣ Manuscript Submission\n3️⃣ Initial Editorial Screening\n4️⃣ Peer Review\n5️⃣ Author Revision\n6️⃣ Final Evaluation\n7️⃣ Acceptance\n8️⃣ Payment\n9️⃣ Copyediting\n🔟 Layout Preparation\n1️⃣1️⃣ Author Proofreading\n1️⃣2️⃣ Online Publication'
+    'Here\'s the typical publication journey at QualiSearch:\n\n' +
+    '1️⃣ Account Registration\n' +
+    '2️⃣ Manuscript Submission\n' +
+    '3️⃣ Initial Editorial Screening\n' +
+    '4️⃣ Peer Review\n' +
+    '5️⃣ Author Revision\n' +
+    '6️⃣ Final Evaluation\n' +
+    '7️⃣ Acceptance\n' +
+    '8️⃣ Payment\n' +
+    '9️⃣ Copyediting\n' +
+    '🔟 Layout Preparation\n' +
+    '1️⃣1️⃣ Author Proofreading\n' +
+    '1️⃣2️⃣ Online Publication 🎉\n\n' +
+    'Each step ensures the quality and integrity of what gets published. It\'s thorough, but worth it!'
   );
+  await pause(600);
   await sendMainMenu(senderId);
 };
 
 const sendPublicationFee = async (senderId) => {
+  const intros = [
+    'Of course! Here\'s what you need to know about publication fees. 💳',
+    'Sure thing! Let me break down the publication fee for you. 💳',
+    'Great question! Here are the details on publication costs. 💳',
+  ];
+
+  await messenger.sendTextMessage(senderId, pick(intros));
+  await pause(900);
+  await messenger.sendTypingOn(senderId);
+  await pause(1100);
   await messenger.sendTextMessage(
     senderId,
-    '💳 *Publication Fee*\n\nThe regular article publication fee for the *QualiSearch Journal of Educational Research and Practice* is:\n\n💰 *₱5,000*\n\nSpecial issue rates may vary depending on the official call for papers or partnership arrangement.\n\nThe applicable fee will be communicated to the author before publication.\n\n⚠️ *Important:* Payment does not guarantee manuscript acceptance. Authors should pay only after the manuscript has been formally accepted for publication.'
+    'The regular article publication fee for the QualiSearch Journal of Educational Research and Practice is:\n\n' +
+    '💰 ₱5,000\n\n' +
+    'Special issue rates may differ depending on the call for papers or partnership arrangement — the team will let you know the applicable amount before publication.\n\n' +
+    '⚠️ One important thing to remember: payment is only made after your manuscript has been formally accepted. Paying early doesn\'t guarantee acceptance, so please wait for the editorial team\'s confirmation! 🙏'
   );
+  await pause(600);
   await sendMainMenu(senderId);
 };
 
 const sendWhenToPay = async (senderId) => {
+  const intros = [
+    'Great that you asked — this is really important to know! ⏰',
+    'Timing matters here! Let me clarify when payment should happen. ⏰',
+  ];
+
+  await messenger.sendTextMessage(senderId, pick(intros));
+  await pause(800);
+  await messenger.sendTypingOn(senderId);
+  await pause(1000);
   await messenger.sendTextMessage(
     senderId,
-    '⏰ *When Should I Pay?*\n\nAuthors should pay only after the manuscript has:\n\n✅ Completed the required evaluation process\n✅ Been formally accepted for publication\n\n⚠️ *Payment does not guarantee manuscript acceptance.*\n\nThe editorial team will notify you when your manuscript is ready for payment.'
+    'You should only pay after your manuscript has:\n\n' +
+    '✅ Completed the full evaluation process\n' +
+    '✅ Been formally accepted for publication\n\n' +
+    'The editorial team will personally reach out to notify you when it\'s time. Please don\'t pay before then — payment doesn\'t guarantee acceptance. 🙏\n\n' +
+    'If you\'re unsure about your manuscript\'s status, feel free to contact the team!'
   );
+  await pause(600);
   await sendMainMenu(senderId);
 };
 
 const sendManuscriptStatus = async (senderId) => {
+  const intros = [
+    'Of course! Here\'s how you can check on your submission. 📊',
+    'Sure! There are a couple of ways to track your manuscript. 📊',
+    'No problem! Let me show you how to check your manuscript\'s status. 📊',
+  ];
+
+  await messenger.sendTextMessage(senderId, pick(intros));
+  await pause(900);
+  await messenger.sendTypingOn(senderId);
+  await pause(1100);
   await messenger.sendTextMessage(
     senderId,
-    '📊 *How to Check Manuscript Status*\n\nYou have two ways to check the status of your submission:\n\n1️⃣ *Online:* Log in to your QualiSearch Academic Press author account at https://qualisearchglobal.com/ to check your submission status.\n\n2️⃣ *Contact Editorial Team:* Reach out and provide the following details:\n   • Manuscript Title\n   • Corresponding Author\'s Name\n   • Journal Name\n   • Submission Date\n\nA representative will assist you with your inquiry.'
+    'You have two options:\n\n' +
+    '1️⃣ Online — Log in to your QualiSearch Academic Press author account at https://qualisearchglobal.com/ to view your submission status anytime.\n\n' +
+    '2️⃣ Contact the Editorial Team — Reach out directly and provide:\n' +
+    '   📌 Your manuscript title\n' +
+    '   📌 Your full name (corresponding author)\n' +
+    '   📌 Journal name\n' +
+    '   📌 Date of submission\n\n' +
+    'A representative will get back to you as soon as they can! 😊'
   );
+  await pause(600);
   await sendMainMenu(senderId);
 };
 
 const sendJournalGuidelines = async (senderId) => {
+  const intros = [
+    'Happy to help with that! Here\'s where to find the official journal guidelines. 📋',
+    'Sure! Every journal has its own guidelines — here\'s how to find them. 📋',
+    'Great question! Let me point you in the right direction. 📋',
+  ];
+
+  await messenger.sendTextMessage(senderId, pick(intros));
+  await pause(900);
+  await messenger.sendTypingOn(senderId);
+  await pause(1100);
   await messenger.sendTextMessage(
     senderId,
-    '📋 *Journal Guidelines*\n\nFor official information about QualiSearch journals, publication standards, formatting requirements, and calls for papers, please visit:\n\n🌐 https://qualisearchglobal.com/\n\nFrom the website:\n1️⃣ Select *Academic Press* from the Pillars of Innovation\n2️⃣ Choose your preferred journal\n3️⃣ Review the submission guidelines for that journal\n\nA QualiSearch representative will assist you with concerns not covered on the website.'
+    'The most up-to-date guidelines, formatting requirements, and calls for papers are all available on the official website:\n\n' +
+    '🌐 https://qualisearchglobal.com/\n\n' +
+    'Here\'s how to navigate there:\n' +
+    '1️⃣ Select Academic Press from the Pillars of Innovation\n' +
+    '2️⃣ Choose your preferred journal\n' +
+    '3️⃣ Review the submission guidelines for that specific journal\n\n' +
+    'If anything is unclear or not covered on the website, a QualiSearch representative will be happy to assist you directly! 🙂'
   );
+  await pause(600);
   await sendMainMenu(senderId);
 };
 
 const sendProgramsServices = async (senderId) => {
+  const intros = [
+    'QualiSearch offers quite a few programs! Let me give you a quick overview. 🏛️',
+    'Great question! Here\'s what QualiSearch is all about. 🏛️',
+    'Absolutely! QualiSearch does so much — here\'s a summary. 🏛️',
+  ];
+
+  await messenger.sendTextMessage(senderId, pick(intros));
+  await pause(900);
+  await messenger.sendTypingOn(senderId);
+  await pause(1100);
   await messenger.sendTextMessage(
     senderId,
-    '🏛️ *QualiSearch Programs and Services*\n\nQualiSearch is an interdisciplinary research and knowledge institution offering:\n\n• 📚 *Academic Press* — Credible journal publications\n• 🎓 *Professional Development* — Training and workshops\n• 🔬 *Research Services* — Ethical scholarly research\n• 🌍 *Social Impact Programs* — Meaningful community engagement\n\nFor complete information about all programs, services, calls for papers, and partnerships:\n\n🌐 Visit https://qualisearchglobal.com/'
+    'QualiSearch is an interdisciplinary research and knowledge institution offering:\n\n' +
+    '📚 Academic Press — Credible and rigorous journal publications\n' +
+    '🎓 Professional Development — Practical training and workshops\n' +
+    '🔬 Research Services — Ethical and high-quality scholarly research\n' +
+    '🌍 Social Impact Programs — Meaningful community and societal engagement\n\n' +
+    'For full details on all programs, partnerships, and upcoming calls for papers:\n' +
+    '🌐 https://qualisearchglobal.com/\n\n' +
+    'There\'s a lot happening — definitely worth checking out! 😊'
   );
+  await pause(600);
   await sendMainMenu(senderId);
 };
 
 const sendContactSupport = async (senderId) => {
+  const intros = [
+    'Of course! I\'ll connect you with the right details to reach the team. 📞',
+    'Sure! Here\'s how you can get in touch with a QualiSearch representative. 📞',
+    'No problem! Let me give you the contact information you need. 📞',
+  ];
+
+  await messenger.sendTextMessage(senderId, pick(intros));
+  await pause(900);
+  await messenger.sendTypingOn(senderId);
+  await pause(1100);
   await messenger.sendTextMessage(
     senderId,
-    '📞 *Contact Support*\n\nFor concerns not covered by our automated assistant, a QualiSearch representative will be happy to assist you.\n\n🌐 Website: https://qualisearchglobal.com/\n📧 Visit the website for official contact details\n\nWhen contacting the editorial team, please provide:\n• Your full name\n• Manuscript title (if applicable)\n• Journal name\n• Nature of your concern\n\nThank you for reaching out to QualiSearch! 😊'
+    'For concerns not covered here, the QualiSearch team will be happy to personally assist you!\n\n' +
+    '🌐 Website: https://qualisearchglobal.com/\n' +
+    '📧 Official contact details are available on the website\n\n' +
+    'When reaching out, it helps to include:\n' +
+    '• Your full name\n' +
+    '• Manuscript title (if applicable)\n' +
+    '• Journal name\n' +
+    '• A brief description of your concern\n\n' +
+    'That way, the team can assist you much faster! 😊 Don\'t hesitate to reach out — they\'re very responsive.'
   );
+  await pause(600);
   await sendMainMenu(senderId);
 };
 
 const sendWebsiteInfo = async (senderId) => {
+  const intros = [
+    'Of course! Here\'s the link to the official QualiSearch website. 🌐',
+    'Sure! You can find everything you need at the QualiSearch website. 🌐',
+  ];
+
+  await messenger.sendTextMessage(senderId, pick(intros));
+  await pause(800);
+  await messenger.sendTypingOn(senderId);
+  await pause(900);
   await messenger.sendTextMessage(
     senderId,
-    '🌐 *QualiSearch Official Website*\n\nFor official information about QualiSearch, its Academic Press, journals, publication standards, calls for papers, and other programs:\n\n👉 https://qualisearchglobal.com/\n\nA QualiSearch representative will assist you with concerns not covered on the website.'
+    '👉 https://qualisearchglobal.com/\n\n' +
+    'From there you can explore Academic Press, browse journals, check guidelines, and find contact information.\n\n' +
+    'If something\'s not on the website, a QualiSearch representative will be happy to help you out personally! 🙂'
   );
+  await pause(600);
   await sendMainMenu(senderId);
 };
 
@@ -276,15 +578,13 @@ const handlePostback = async (senderId, payload, title) => {
   logger.info('Handling postback', { senderId, payload, title });
 
   await messenger.sendTypingOn(senderId);
+  await pause(700);
 
   switch (payload) {
-    case 'GET_STARTED':
-      await messenger.sendTextMessage(
-        senderId,
-        '👋 Hello! Welcome to QualiSearch.\n\nWe are an interdisciplinary research and knowledge institution committed to ethical scholarship, credible academic publishing, professional development, and meaningful social impact.\n\nHow may we assist you today?'
-      );
-      await sendMainMenu(senderId);
+    case 'GET_STARTED': {
+      await handleWelcome(senderId);
       break;
+    }
 
     case 'ARTICLE_SUBMISSION':
       await sendArticleSubmission(senderId);
@@ -317,7 +617,10 @@ const handlePostback = async (senderId, payload, title) => {
     default:
       await messenger.sendTextMessage(
         senderId,
-        `Thank you for your message! Let me show you what I can help you with.`
+        pick([
+          'Let me show you what I can help you with! 😊',
+          'Sure! Here are the things I can assist you with today. 👇',
+        ])
       );
       await sendMainMenu(senderId);
   }
@@ -334,9 +637,23 @@ const handleQuickReply = async (senderId, payload, text) => {
 
 const handleAttachment = async (senderId, attachments) => {
   logger.info('Handling attachment', { senderId, count: attachments.length });
+
+  await messenger.sendTypingOn(senderId);
+  await pause(800);
+
+  const replies = [
+    'Thanks for sending that! 📎 For actual manuscript file submissions though, please use the official portal so nothing gets lost.',
+    'Oh, I see you sent a file! 📎 To make sure it reaches the right place, please submit it through the official platform.',
+    'Got it! 📎 For manuscript submissions, the official portal is the safest way to submit — let me give you the link.',
+  ];
+
+  await messenger.sendTextMessage(senderId, pick(replies));
+  await pause(700);
+  await messenger.sendTypingOn(senderId);
+  await pause(900);
   await messenger.sendTextMessage(
     senderId,
-    '📎 Thank you for sending that!\n\nFor manuscript file submissions, please use the official submission portal:\n🌐 https://qualisearchglobal.com/\n\nSelect *Academic Press* → Choose your journal → Submit via the platform.'
+    '🌐 https://qualisearchglobal.com/\n\nSelect Academic Press → choose your journal → submit via the platform. Easy! 😊'
   );
   await sendMainMenu(senderId);
 };
