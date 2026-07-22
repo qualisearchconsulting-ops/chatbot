@@ -416,19 +416,19 @@ const sendAccountInfo = async (senderId) => {
 };
 
 const sendAccountAccessHelp = async (senderId) => {
-  await messenger.sendTextMessage(senderId, 'Pasensya na at hindi mo ma-access ang account mo. Subukan natin itong ma-recover.');
+  await messenger.sendTextMessage(senderId, 'Sorry you cannot access your account. Let us help you recover it.');
   await pause(700);
   await messenger.sendTypingOn(senderId);
   await pause(900);
   await messenger.sendTextMessage(
     senderId,
-    '• Pumunta sa https://qualisearchglobal.com/ at buksan ang Academic Press login page.\n' +
-    '• Piliin ang Forgot Password at ilagay ang email na ginamit mo sa registration.\n' +
-    '• Tingnan ang inbox at spam/junk folder para sa reset email.\n\n' +
-    'Kung hindi pa rin gumana, mag-email sa qualisearchconsulting@gmail.com kasama ang buong pangalan, registered email, at screenshot ng error. Huwag ipadala ang password o OTP mo.'
+    '• Go to https://qualisearchglobal.com/ and open the Academic Press login page.\n' +
+    '• Select Forgot Password and enter the email address used for registration.\n' +
+    '• Check your inbox and spam or junk folder for the reset email.\n\n' +
+    'If it still does not work, email qualisearchconsulting@gmail.com with your full name, registered email address, and a screenshot of the error. Never send your password or OTP.'
   );
   await pause(600);
-  await sendMainMenu(senderId, 'May iba ka pa bang concern tungkol sa account mo?');
+  await sendMainMenu(senderId, 'Do you have any other questions about your account?');
 };
 
 const sendPublicationProcess = async (senderId) => {

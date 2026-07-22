@@ -39,7 +39,7 @@ describe('account intent routing', () => {
 
     const replies = messenger.sendTextMessage.mock.calls.map((call) => call[1]).join('\n');
     expect(replies).toContain('Forgot Password');
-    expect(replies).toContain('Huwag ipadala ang password o OTP');
+    expect(replies).toContain('Never send your password or OTP');
     expect(replies).not.toContain('Having an account lets you');
   });
 
@@ -108,7 +108,7 @@ describe('response formatting and submission link', () => {
     await handleTextMessage('sender-1', `I can't log in to my account`);
 
     const replies = messenger.sendTextMessage.mock.calls.map((call) => call[1]).join('\n');
-    expect(replies).toContain('• Pumunta');
-    expect(replies).toContain('• Piliin ang Forgot Password');
+    expect(replies).toContain('• Go to');
+    expect(replies).toContain('• Select Forgot Password');
   });
 });
