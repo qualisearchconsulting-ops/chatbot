@@ -26,15 +26,15 @@ describe('webhook human handoff', () => {
 
   test('a manual Page reply pauses bot replies for its recipient', async () => {
     await processEvent({
-      sender: { id: 'page-1' },
-      recipient: { id: 'customer-1' },
+      sender: { id: 'customer-1' },
+      recipient: { id: 'page-1' },
       message: {
         is_echo: true,
         mid: 'manual-mid',
         app_id: 'meta-business-suite-app',
         text: 'Human reply',
       },
-    });
+    }, 'page-1');
     await processEvent({
       sender: { id: 'customer-1' },
       recipient: { id: 'page-1' },
@@ -50,7 +50,7 @@ describe('webhook human handoff', () => {
       sender: { id: 'page-1' },
       recipient: { id: 'customer-1' },
       message: { is_echo: true, mid: 'bot-mid', text: 'Bot reply' },
-    });
+    }, 'page-1');
     await processEvent({
       sender: { id: 'customer-1' },
       recipient: { id: 'page-1' },
@@ -70,7 +70,7 @@ describe('webhook human handoff', () => {
         metadata: 'QUALISEARCH_CHATBOT',
         text: 'Bot reply',
       },
-    });
+    }, 'page-1');
     await processEvent({
       sender: { id: 'customer-1' },
       recipient: { id: 'page-1' },
@@ -78,5 +78,20 @@ describe('webhook human handoff', () => {
     });
 
     expect(handler.handleTextMessage).toHaveBeenCalledWith('customer-1', 'Hello');
+  });
+
+  test('a Page-as-sender manual echo also pauses the customer', async () => {
+    await processEvent({
+      sender: { id: 'page-1' },
+      recipient: { id: 'customer-1' },
+      message: { is_echo: true, mid: 'manual-mid-2', text: 'Taking over' },
+    }, 'page-1');
+    await processEvent({
+      sender: { id: 'customer-1' },
+      recipient: { id: 'page-1' },
+      message: { mid: 'incoming-mid-2', text: 'Are you there?' },
+    });
+
+    expect(handler.handleTextMessage).not.toHaveBeenCalled();
   });
 });

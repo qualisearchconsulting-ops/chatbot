@@ -79,7 +79,7 @@ const handleWebhook = (req, res) => {
     }
 
     messagingEvents.forEach((event) => {
-      processEvent(event).catch((err) => {
+      processEvent(event, entry.id).catch((err) => {
         logger.error('Error processing webhook event', {
           error: err.message,
           event,
@@ -92,22 +92,29 @@ const handleWebhook = (req, res) => {
 /**
  * Route a single messaging event to the correct handler.
  * @param {Object} event - A single messaging event from Facebook
+ * @param {string|null} pageId - Page ID from the webhook entry
  */
-const processEvent = async (event) => {
+const processEvent = async (event, pageId = null) => {
   // Messenger sends Page replies back as message echoes. A reply that was not
   // sent by this app means a person has taken over the conversation.
   if (event.message?.is_echo) {
+    const senderId = event.sender?.id;
     const recipientId = event.recipient?.id;
+    // Meta echo payload direction varies by sending surface. entry.id is the
+    // reliable Page ID, so the other participant is always the customer.
+    const customerId = pageId
+      ? (senderId === pageId ? recipientId : senderId)
+      : recipientId;
     // Business Suite manual replies can also include app_id. Only the metadata
     // added by our Send API calls (or a remembered message ID) identifies the bot.
     const isBotMessage = event.message.metadata === AUTOMATED_MESSAGE_METADATA ||
       consumeAutomatedMessage(event.message.mid);
 
-    if (!isBotMessage && recipientId) {
-      pauseConversation(recipientId);
+    if (!isBotMessage && customerId) {
+      pauseConversation(customerId);
     }
 
-    logger.debug('Processed message echo', { recipientId, isBotMessage });
+    logger.debug('Processed message echo', { customerId, pageId, isBotMessage });
     return;
   }
 

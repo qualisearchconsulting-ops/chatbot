@@ -80,6 +80,7 @@ In your Meta Developer Dashboard → **Messenger API Settings** → **Configure 
 Subscribe to these fields for full chatbot functionality:
 
 - ✅ `messages` — Receive text messages
+- ✅ `message_echoes` — Detect manual Page/Business Suite replies for human takeover
 - ✅ `messaging_postbacks` — Button clicks & Get Started
 - ✅ `message_deliveries` — Delivery confirmations
 - ✅ `message_reads` — Read receipts
