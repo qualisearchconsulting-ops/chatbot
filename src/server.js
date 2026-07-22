@@ -2,6 +2,7 @@ require('dotenv').config();
 const app = require('./app');
 const logger = require('./utils/logger');
 const { startKeepAlive } = require('./utils/keepAlive');
+const { configureMessengerProfile } = require('./services/messengerService');
 
 const PORT = process.env.PORT || 3000;
 
@@ -32,6 +33,9 @@ const server = app.listen(PORT, () => {
 
   // Start keep-alive pinger for Render free tier
   startKeepAlive();
+
+  // Keep the Page greeting and pre-chat FAQ choices in sync with the bot.
+  configureMessengerProfile();
 
   if (process.env.NODE_ENV !== 'production') {
     logger.info(

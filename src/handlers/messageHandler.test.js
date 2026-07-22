@@ -51,3 +51,35 @@ describe('account intent routing', () => {
     expect(replies).not.toContain('Forgot Password');
   });
 });
+
+describe('welcome FAQ routing', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.spyOn(global, 'setTimeout').mockImplementation((callback) => {
+      callback();
+      return 0;
+    });
+  });
+
+  afterEach(() => jest.restoreAllMocks());
+
+  test('shows the requested welcome text and six menu options', async () => {
+    await handleTextMessage('sender-1', 'Hi');
+
+    const [senderId, prompt, options] = messenger.sendQuickReplies.mock.calls[0];
+    expect(senderId).toBe('sender-1');
+    expect(prompt).toBe('Hi! Welcome to QualiSearch. How can we assist you today?');
+    expect(options).toHaveLength(6);
+  });
+
+  test.each([
+    ['How can I apply as a peer reviewer?', 'updated CV'],
+    ['What is the peer-review process?', 'double-blind peer-review process'],
+    ['How long does publication take?', 'Publication time varies'],
+  ])('routes %s to the matching answer', async (question, expectedReply) => {
+    await handleTextMessage('sender-1', question);
+
+    const replies = messenger.sendTextMessage.mock.calls.map((call) => call[1]).join('\n');
+    expect(replies).toContain(expectedReply);
+  });
+});

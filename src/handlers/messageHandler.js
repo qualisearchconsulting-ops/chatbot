@@ -82,13 +82,12 @@ const sendMainMenu = async (senderId, customPrompt = null) => {
     senderId,
     prompt,
     [
-      { content_type: 'text', title: '📝 Article Submission',   payload: 'ARTICLE_SUBMISSION'   },
-      { content_type: 'text', title: '🔄 Publication Process',  payload: 'PUBLICATION_PROCESS'  },
-      { content_type: 'text', title: '💳 Publication Fee',      payload: 'PUBLICATION_FEE'      },
-      { content_type: 'text', title: '📊 Manuscript Status',    payload: 'MANUSCRIPT_STATUS'    },
-      { content_type: 'text', title: '📋 Journal Guidelines',   payload: 'JOURNAL_GUIDELINES'   },
-      { content_type: 'text', title: '🏛️ Programs & Services', payload: 'PROGRAMS_SERVICES'    },
-      { content_type: 'text', title: '📞 Contact Support',      payload: 'CONTACT_SUPPORT'      },
+      { content_type: 'text', title: 'Submit manuscript',    payload: 'ARTICLE_SUBMISSION'        },
+      { content_type: 'text', title: 'Publication fee',      payload: 'PUBLICATION_FEE'           },
+      { content_type: 'text', title: 'Apply as reviewer',    payload: 'PEER_REVIEWER_APPLICATION' },
+      { content_type: 'text', title: 'Peer-review process',  payload: 'PEER_REVIEW_PROCESS'       },
+      { content_type: 'text', title: 'Publication timeline', payload: 'PUBLICATION_TIMELINE'       },
+      { content_type: 'text', title: 'Contact QualiSearch',  payload: 'CONTACT_SUPPORT'            },
     ]
   );
 };
@@ -129,6 +128,39 @@ const handleTextMessage = async (senderId, messageText) => {
 
   if (isAccountAccessProblem(text)) {
     await sendAccountAccessHelp(senderId);
+    return;
+  }
+
+  // ── Peer Reviewer Application ────────────────────────────────────────────
+  if (
+    text.includes('apply as a peer reviewer') ||
+    text.includes('reviewer application') ||
+    text.includes('become a reviewer') ||
+    text.includes('serve as a reviewer')
+  ) {
+    await sendPeerReviewerApplication(senderId);
+    return;
+  }
+
+  // ── Publication Timeline ─────────────────────────────────────────────────
+  if (
+    text.includes('how long does publication') ||
+    text.includes('publication timeline') ||
+    text.includes('how long does the review') ||
+    text.includes('review process take')
+  ) {
+    await sendPublicationTimeline(senderId);
+    return;
+  }
+
+  // ── Peer-review Process ──────────────────────────────────────────────────
+  if (
+    text.includes('peer-review process') ||
+    text.includes('peer review process') ||
+    text.includes('double-blind') ||
+    text.includes('double blind')
+  ) {
+    await sendPeerReviewProcess(senderId);
     return;
   }
 
@@ -276,26 +308,7 @@ const handleTextMessage = async (senderId, messageText) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const handleWelcome = async (senderId) => {
-  const firstName  = await getFirstName(senderId);
-  const timeGreet  = getTimeGreeting();
-  const name       = salutation(firstName);
-
-  const openers = [
-    `${timeGreet}${name}! 👋 Great to hear from you!`,
-    `Hey${name}! 😊 ${timeGreet}! So glad you reached out.`,
-    `${timeGreet}${name}! Welcome to QualiSearch — I'm happy you're here!`,
-    `Hi${name}! ${timeGreet} and welcome! 🌟`,
-  ];
-
-  await messenger.sendTextMessage(senderId, pick(openers));
-  await pause(800);
-  await messenger.sendTypingOn(senderId);
-  await pause(1000);
-  await messenger.sendTextMessage(
-    senderId,
-    'We\'re QualiSearch — an interdisciplinary research and knowledge institution dedicated to ethical scholarship, credible academic publishing, professional development, and meaningful social impact.\n\nWhat can I help you with today?'
-  );
-  await sendMainMenu(senderId, 'Here are some things I can assist you with 👇');
+  await sendMainMenu(senderId, 'Hi! Welcome to QualiSearch. How can we assist you today?');
 };
 
 const handleThanks = async (senderId) => {
@@ -627,6 +640,33 @@ const sendWebsiteInfo = async (senderId) => {
   await sendMainMenu(senderId);
 };
 
+const sendPeerReviewerApplication = async (senderId) => {
+  await messenger.sendTextMessage(
+    senderId,
+    'QualiSearch welcomes qualified researchers, educators, and professionals who are interested in serving as peer reviewers. Please email your updated CV, full name, institutional affiliation, academic qualifications, research and publication experience, areas of specialization, preferred journal or field, and contact information to qualisearchconsulting@gmail.com.'
+  );
+  await pause(600);
+  await sendMainMenu(senderId);
+};
+
+const sendPeerReviewProcess = async (senderId) => {
+  await messenger.sendTextMessage(
+    senderId,
+    'QualiSearch uses a double-blind peer-review process, so the identities of authors and reviewers are concealed. Manuscripts that pass editorial screening are evaluated by at least two independent subject specialists, who assess originality, methodology, clarity, ethical compliance, and scholarly contribution. The journal editor makes the final decision after considering their recommendations.'
+  );
+  await pause(600);
+  await sendMainMenu(senderId);
+};
+
+const sendPublicationTimeline = async (senderId) => {
+  await messenger.sendTextMessage(
+    senderId,
+    'Publication time varies depending on manuscript quality, reviewer availability, required revisions, editorial schedules, submission volume, and the journal issue schedule. For a case-specific update, check your submission account or contact the editorial office with your manuscript title and reference number.'
+  );
+  await pause(600);
+  await sendMainMenu(senderId);
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // POSTBACK HANDLER — Button clicks & quick reply payloads
 // ─────────────────────────────────────────────────────────────────────────────
@@ -653,6 +693,18 @@ const handlePostback = async (senderId, payload, title) => {
 
     case 'PUBLICATION_FEE':
       await sendPublicationFee(senderId);
+      break;
+
+    case 'PEER_REVIEWER_APPLICATION':
+      await sendPeerReviewerApplication(senderId);
+      break;
+
+    case 'PEER_REVIEW_PROCESS':
+      await sendPeerReviewProcess(senderId);
+      break;
+
+    case 'PUBLICATION_TIMELINE':
+      await sendPublicationTimeline(senderId);
       break;
 
     case 'MANUSCRIPT_STATUS':

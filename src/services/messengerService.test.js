@@ -38,4 +38,22 @@ describe('emoji-free Messenger replies', () => {
 
     expect(axios.post.mock.calls[0][1].message.text).toBe('Submit\nFamily support');
   });
+
+  test('configures the requested greeting and four pre-chat questions', async () => {
+    await messenger.configureMessengerProfile();
+
+    const profile = axios.post.mock.calls[0][1];
+    expect(profile.greeting[0].text).toBe(
+      'Hi! Welcome to QualiSearch. How can we assist you today?'
+    );
+    expect(profile.ice_breakers).toHaveLength(4);
+    expect(profile.ice_breakers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ payload: 'ARTICLE_SUBMISSION' }),
+        expect.objectContaining({ payload: 'PUBLICATION_FEE' }),
+        expect.objectContaining({ payload: 'PEER_REVIEWER_APPLICATION' }),
+        expect.objectContaining({ payload: 'PEER_REVIEW_PROCESS' }),
+      ])
+    );
+  });
 });

@@ -112,6 +112,44 @@ const sendQuickReplies = async (recipientId, text, quickReplies) => {
 };
 
 /**
+ * Configure the greeting and FAQ ice breakers shown before a new conversation.
+ * Messenger supports up to four ice breakers.
+ */
+const configureMessengerProfile = async () => {
+  try {
+    const response = await axios.post(
+      `${GRAPH_API_BASE}/me/messenger_profile`,
+      {
+        greeting: [
+          {
+            locale: 'default',
+            text: 'Hi! Welcome to QualiSearch. How can we assist you today?',
+          },
+        ],
+        ice_breakers: [
+          { question: 'How do I submit a manuscript?', payload: 'ARTICLE_SUBMISSION' },
+          { question: 'How much is the publication fee?', payload: 'PUBLICATION_FEE' },
+          { question: 'How can I apply as a peer reviewer?', payload: 'PEER_REVIEWER_APPLICATION' },
+          { question: 'What is the peer-review process?', payload: 'PEER_REVIEW_PROCESS' },
+        ],
+      },
+      {
+        params: { access_token: process.env.PAGE_ACCESS_TOKEN },
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+
+    logger.info('Messenger profile configured');
+    return response.data;
+  } catch (error) {
+    logger.warn('Could not configure Messenger profile', {
+      error: error.response?.data || error.message,
+    });
+    return null;
+  }
+};
+
+/**
  * Send a generic template (carousel of cards).
  * @param {string} recipientId
  * @param {Array} elements - Array of card elements
@@ -175,6 +213,7 @@ module.exports = {
   sendTextMessage,
   sendTypingOn,
   sendQuickReplies,
+  configureMessengerProfile,
   sendGenericTemplate,
   getUserProfile,
 };
