@@ -2,6 +2,8 @@ const messenger  = require('../services/messengerService');
 const logger     = require('../utils/logger');
 const { askGroq } = require('../services/groqService');
 
+const SUBMISSION_URL = 'https://qualisearchglobal.com/academic-press/publish.html';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // QUALISEARCH KNOWLEDGE BASE
 // All official responses sourced from QualiSearch Global (qualisearchglobal.com)
@@ -377,13 +379,12 @@ const sendArticleSubmission = async (senderId) => {
   await pause(1200);
   await messenger.sendTextMessage(
     senderId,
-    '1️⃣ Head over to https://qualisearchglobal.com/\n' +
-    '2️⃣ Click on Academic Press from the QualiSearch Pillars of Innovation\n' +
-    '3️⃣ Choose the journal that fits your manuscript\n' +
-    '4️⃣ Create your author account on the submission platform\n' +
-    '5️⃣ Log in and fill in the required manuscript details\n' +
-    '6️⃣ Upload your manuscript and all supporting documents\n' +
-    '7️⃣ Double-check everything, then hit Submit! ✅\n\n' +
+    `• Open the official submission page: ${SUBMISSION_URL}\n` +
+    '• Choose the journal that fits your manuscript\n' +
+    '• Create your author account on the submission platform\n' +
+    '• Log in and fill in the required manuscript details\n' +
+    '• Upload your manuscript and all supporting documents\n' +
+    '• Double-check everything, then select Submit\n\n' +
     'You\'ll receive a confirmation once your submission goes through. Good luck! 🍀'
   );
   await pause(600);
@@ -408,7 +409,7 @@ const sendAccountInfo = async (senderId) => {
     '• Get notified by the editorial team 📬\n' +
     '• Upload revisions when needed ✏️\n' +
     '• Track the progress of your submission 🔍\n\n' +
-    'To get started, visit https://qualisearchglobal.com/, select Academic Press, choose your journal, and look for the registration or submission portal. Easy! 😊'
+    `To get started, visit the official submission page: ${SUBMISSION_URL}`
   );
   await pause(600);
   await sendMainMenu(senderId);
@@ -421,9 +422,9 @@ const sendAccountAccessHelp = async (senderId) => {
   await pause(900);
   await messenger.sendTextMessage(
     senderId,
-    '1. Pumunta sa https://qualisearchglobal.com/ at buksan ang Academic Press login page.\n' +
-    '2. Piliin ang Forgot Password at ilagay ang email na ginamit mo sa registration.\n' +
-    '3. Tingnan ang inbox at spam/junk folder para sa reset email.\n\n' +
+    '• Pumunta sa https://qualisearchglobal.com/ at buksan ang Academic Press login page.\n' +
+    '• Piliin ang Forgot Password at ilagay ang email na ginamit mo sa registration.\n' +
+    '• Tingnan ang inbox at spam/junk folder para sa reset email.\n\n' +
     'Kung hindi pa rin gumana, mag-email sa qualisearchconsulting@gmail.com kasama ang buong pangalan, registered email, at screenshot ng error. Huwag ipadala ang password o OTP mo.'
   );
   await pause(600);
@@ -444,18 +445,18 @@ const sendPublicationProcess = async (senderId) => {
   await messenger.sendTextMessage(
     senderId,
     'Here\'s the typical publication journey at QualiSearch:\n\n' +
-    '1️⃣ Account Registration\n' +
-    '2️⃣ Manuscript Submission\n' +
-    '3️⃣ Initial Editorial Screening\n' +
-    '4️⃣ Peer Review\n' +
-    '5️⃣ Author Revision\n' +
-    '6️⃣ Final Evaluation\n' +
-    '7️⃣ Acceptance\n' +
-    '8️⃣ Payment\n' +
-    '9️⃣ Copyediting\n' +
-    '🔟 Layout Preparation\n' +
-    '1️⃣1️⃣ Author Proofreading\n' +
-    '1️⃣2️⃣ Online Publication 🎉\n\n' +
+    '• Account Registration\n' +
+    `• Manuscript Submission: ${SUBMISSION_URL}\n` +
+    '• Initial Editorial Screening\n' +
+    '• Peer Review\n' +
+    '• Author Revision\n' +
+    '• Final Evaluation\n' +
+    '• Acceptance\n' +
+    '• Payment\n' +
+    '• Copyediting\n' +
+    '• Layout Preparation\n' +
+    '• Author Proofreading\n' +
+    '• Online Publication\n\n' +
     'Each step ensures the quality and integrity of what gets published. It\'s thorough, but worth it!'
   );
   await pause(600);
@@ -526,12 +527,12 @@ const sendManuscriptStatus = async (senderId) => {
   await messenger.sendTextMessage(
     senderId,
     'You have two options:\n\n' +
-    '1. Online — Log in to your QualiSearch Academic Press author account at https://qualisearchglobal.com/ to view your submission status anytime.\n\n' +
-    '2. Contact the Editorial Team — Reach out directly and provide:\n' +
-    '   - Your manuscript title\n' +
-    '   - Your full name (corresponding author)\n' +
-    '   - Journal name\n' +
-    '   - Date of submission\n\n' +
+    `• Online — Open ${SUBMISSION_URL} and log in to view your submission status.\n\n` +
+    '• Contact the Editorial Team and provide:\n' +
+    '  • Your manuscript title\n' +
+    '  • Your full name (corresponding author)\n' +
+    '  • Journal name\n' +
+    '  • Date of submission\n\n' +
     'A representative will get back to you as soon as they can!'
   );
   await pause(600);
@@ -554,9 +555,10 @@ const sendJournalGuidelines = async (senderId) => {
     'The most up-to-date guidelines, formatting requirements, and calls for papers are all available on the official website:\n\n' +
     '🌐 https://qualisearchglobal.com/\n\n' +
     'Here\'s how to navigate there:\n' +
-    '1️⃣ Select Academic Press from the Pillars of Innovation\n' +
-    '2️⃣ Choose your preferred journal\n' +
-    '3️⃣ Review the submission guidelines for that specific journal\n\n' +
+    '• Select Academic Press from the Pillars of Innovation\n' +
+    '• Choose your preferred journal\n' +
+    '• Review the submission guidelines for that specific journal\n\n' +
+    `Official submission page: ${SUBMISSION_URL}\n\n` +
     'If anything is unclear or not covered on the website, a QualiSearch representative will be happy to assist you directly! 🙂'
   );
   await pause(600);
@@ -762,7 +764,9 @@ const handleAttachment = async (senderId, attachments) => {
   await pause(900);
   await messenger.sendTextMessage(
     senderId,
-    '🌐 https://qualisearchglobal.com/\n\nSelect Academic Press → choose your journal → submit via the platform. Easy! 😊'
+    `• Open the official submission page: ${SUBMISSION_URL}\n` +
+    '• Choose your journal\n' +
+    '• Submit your manuscript through the platform'
   );
   await sendMainMenu(senderId);
 };

@@ -83,3 +83,32 @@ describe('welcome FAQ routing', () => {
     expect(replies).toContain(expectedReply);
   });
 });
+
+describe('response formatting and submission link', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.spyOn(global, 'setTimeout').mockImplementation((callback) => {
+      callback();
+      return 0;
+    });
+  });
+
+  afterEach(() => jest.restoreAllMocks());
+
+  test('uses bullets and the official publishing page for submission steps', async () => {
+    await handleTextMessage('sender-1', 'How do I submit my manuscript?');
+
+    const replies = messenger.sendTextMessage.mock.calls.map((call) => call[1]).join('\n');
+    expect(replies).toContain('• Open the official submission page');
+    expect(replies).toContain('https://qualisearchglobal.com/academic-press/publish.html');
+    expect(replies).not.toContain('Head over to https://qualisearchglobal.com/\n');
+  });
+
+  test('uses bullets for step-by-step account recovery instructions', async () => {
+    await handleTextMessage('sender-1', `I can't log in to my account`);
+
+    const replies = messenger.sendTextMessage.mock.calls.map((call) => call[1]).join('\n');
+    expect(replies).toContain('• Pumunta');
+    expect(replies).toContain('• Piliin ang Forgot Password');
+  });
+});
