@@ -36,5 +36,7 @@ describe('chatbot control API', () => {
     const response = await request(app).get('/chatbot-control').expect(200);
     expect(response.text).toContain('QualiSearch Chatbot');
     expect(response.text).toContain('Turn chatbot OFF');
+    expect(response.text).toContain('id="show-password"');
+    expect(response.text).toContain('id="logout"');
   });
 });

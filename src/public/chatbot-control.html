@@ -19,13 +19,23 @@
     .subtitle { margin: 0 0 28px; color: #64748b; }
     label { display: block; margin-bottom: 8px; font-weight: 650; }
     .login-row { display: flex; gap: 10px; }
+    .password-field {
+      min-width: 0; flex: 1; display: flex; align-items: center;
+      border: 1px solid #cbd5e1; border-radius: 12px; overflow: hidden;
+    }
     input {
-      min-width: 0; flex: 1; border: 1px solid #cbd5e1; border-radius: 12px;
+      min-width: 0; width: 100%; border: 0; outline: 0;
       padding: 12px 14px; font: inherit;
     }
     button { border: 0; border-radius: 12px; padding: 12px 18px; font: inherit; font-weight: 700; cursor: pointer; }
+    #show-password {
+      flex: 0 0 auto; border-radius: 0; padding: 12px; color: #475569;
+      background: transparent; font-size: .85rem;
+    }
     #connect { background: #0f172a; color: white; }
     #panel { text-align: center; }
+    .panel-actions { display: flex; justify-content: flex-end; margin-bottom: 4px; }
+    #logout { padding: 8px 12px; color: #475569; background: #e2e8f0; font-size: .88rem; }
     .status {
       width: 112px; height: 112px; margin: 8px auto 18px; border-radius: 999px;
       display: grid; place-items: center; font-size: 1.25rem; font-weight: 800;
@@ -37,6 +47,12 @@
     #toggle.turn-on { background: #16a34a; }
     #message { min-height: 24px; margin: 16px 0 0; color: #64748b; font-size: .92rem; }
     .hidden { display: none; }
+    @media (max-width: 420px) {
+      body { padding: 16px; }
+      main { padding: 24px; border-radius: 18px; }
+      .login-row { flex-direction: column; }
+      #connect { width: 100%; }
+    }
   </style>
 </head>
 <body>
@@ -47,12 +63,18 @@
     <section id="login">
       <label for="token">Admin token</label>
       <div class="login-row">
-        <input id="token" type="password" autocomplete="current-password" placeholder="Enter admin token">
+        <div class="password-field">
+          <input id="token" type="password" autocomplete="current-password" placeholder="Enter admin token">
+          <button id="show-password" type="button" aria-controls="token" aria-pressed="false">Show</button>
+        </div>
         <button id="connect" type="button">Open</button>
       </div>
     </section>
 
     <section id="panel" class="hidden">
+      <div class="panel-actions">
+        <button id="logout" type="button">Logout</button>
+      </div>
       <div id="status" class="status">...</div>
       <button id="toggle" type="button">Loading...</button>
     </section>
@@ -64,7 +86,9 @@
     const login = document.querySelector('#login');
     const panel = document.querySelector('#panel');
     const tokenInput = document.querySelector('#token');
+    const showPasswordButton = document.querySelector('#show-password');
     const connectButton = document.querySelector('#connect');
+    const logoutButton = document.querySelector('#logout');
     const statusBadge = document.querySelector('#status');
     const toggleButton = document.querySelector('#toggle');
     const message = document.querySelector('#message');
@@ -112,8 +136,27 @@
     };
 
     connectButton.addEventListener('click', connect);
+    showPasswordButton.addEventListener('click', () => {
+      const willShow = tokenInput.type === 'password';
+      tokenInput.type = willShow ? 'text' : 'password';
+      showPasswordButton.textContent = willShow ? 'Hide' : 'Show';
+      showPasswordButton.setAttribute('aria-pressed', String(willShow));
+      tokenInput.focus();
+    });
     tokenInput.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') connect();
+    });
+    logoutButton.addEventListener('click', () => {
+      sessionStorage.removeItem('chatbotAdminToken');
+      token = '';
+      tokenInput.value = '';
+      tokenInput.type = 'password';
+      showPasswordButton.textContent = 'Show';
+      showPasswordButton.setAttribute('aria-pressed', 'false');
+      panel.classList.add('hidden');
+      login.classList.remove('hidden');
+      message.textContent = 'Logged out.';
+      tokenInput.focus();
     });
     toggleButton.addEventListener('click', async () => {
       toggleButton.disabled = true;
