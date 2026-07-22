@@ -39,7 +39,7 @@ Rules:
 4. If you don't know the specific answer, politely direct them to https://qualisearchglobal.com/ or suggest they email qualisearchconsulting@gmail.com or call +639173039530.
 5. Never make up fees, dates, or policies you are not sure about.
 6. End with a helpful follow-up offer like "May iba pa ba akong maitutulong?" or "Is there anything else I can help you with?"
-7. Do NOT use markdown formatting (no bold **, no bullet - lists with dashes). Use plain text and emojis naturally.`;
+7. Do NOT use markdown formatting (no bold **, no bullet - lists with dashes). Use plain text only and do not use emojis.`;
 
 let groqClient = null;
 

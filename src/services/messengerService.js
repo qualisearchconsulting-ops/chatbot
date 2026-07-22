@@ -3,6 +3,17 @@ const logger = require('../utils/logger');
 
 const GRAPH_API_BASE = 'https://graph.facebook.com/v20.0';
 
+// Keep every user-facing Messenger reply free of emoji, including AI-generated
+// text and quick-reply labels.
+const EMOJI_PATTERN = /(?:\p{Regional_Indicator}{2}|[#*0-9]\uFE0F?\u20E3|\p{Extended_Pictographic}(?:[\uFE0E\uFE0F])?(?:\u200D\p{Extended_Pictographic}(?:[\uFE0E\uFE0F])?)*)/gu;
+
+const removeEmojis = (value) => value
+  .replace(EMOJI_PATTERN, '')
+  .replace(/[\uFE0E\uFE0F]/gu, '')
+  .replace(/[ \t]{2,}/g, ' ')
+  .replace(/[ \t]+$/gm, '')
+  .trim();
+
 /**
  * Send a text message reply to a user via the Messenger Send API.
  * @param {string} recipientId - The PSID (Page-Scoped ID) of the recipient
@@ -10,11 +21,12 @@ const GRAPH_API_BASE = 'https://graph.facebook.com/v20.0';
  */
 const sendTextMessage = async (recipientId, text) => {
   try {
+    const sanitizedText = removeEmojis(text);
     const response = await axios.post(
       `${GRAPH_API_BASE}/me/messages`,
       {
         recipient: { id: recipientId },
-        message: { text },
+        message: { text: sanitizedText },
         messaging_type: 'RESPONSE',
       },
       {
@@ -68,13 +80,18 @@ const sendTypingOn = async (recipientId) => {
  */
 const sendQuickReplies = async (recipientId, text, quickReplies) => {
   try {
+    const sanitizedText = removeEmojis(text);
+    const sanitizedQuickReplies = quickReplies.map((quickReply) => ({
+      ...quickReply,
+      title: removeEmojis(quickReply.title),
+    }));
     const response = await axios.post(
       `${GRAPH_API_BASE}/me/messages`,
       {
         recipient: { id: recipientId },
         message: {
-          text,
-          quick_replies: quickReplies,
+          text: sanitizedText,
+          quick_replies: sanitizedQuickReplies,
         },
         messaging_type: 'RESPONSE',
       },
