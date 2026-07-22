@@ -53,6 +53,17 @@ const getFirstName = async (senderId) => {
 const salutation = (firstName) =>
   firstName ? `, ${firstName}` : '';
 
+const isAccountAccessProblem = (text) => {
+  const hasAccountContext = /\b(account|login|log[ -]?in|sign[ -]?in|password|portal)\b/.test(text);
+  const hasProblemContext = /\b(di|diko|hindi|ayaw|cannot|can't|cant|unable|forgot|forgotten|nakalimutan|reset|locked|error)\b/.test(text) ||
+    text.includes('ma-access') ||
+    text.includes('ma access') ||
+    text.includes('makapasok') ||
+    text.includes('mabuksan');
+
+  return hasAccountContext && hasProblemContext;
+};
+
 // ── Follow-up prompts (randomly picked to avoid repetition) ──────────────────
 const FOLLOW_UP_PROMPTS = [
   'Is there anything else I can help you with? 😊',
@@ -100,10 +111,7 @@ const handleTextMessage = async (senderId, messageText) => {
   await pause(700);
 
   // ── Greetings / Welcome ───────────────────────────────────────────────────
-  if (
-    ['hi', 'hello', 'hey', 'start', 'get started', 'good morning',
-     'good afternoon', 'good evening', 'howdy', 'greetings'].some((w) => text.includes(w))
-  ) {
+  if (/^(hi|hello|hey|start|get started|good morning|good afternoon|good evening|howdy|greetings|kumusta)[!.?\s]*$/.test(text)) {
     await handleWelcome(senderId);
     return;
   }
@@ -116,6 +124,11 @@ const handleTextMessage = async (senderId, messageText) => {
     text.includes('appreciate')
   ) {
     await handleThanks(senderId);
+    return;
+  }
+
+  if (isAccountAccessProblem(text)) {
+    await sendAccountAccessHelp(senderId);
     return;
   }
 
@@ -386,6 +399,22 @@ const sendAccountInfo = async (senderId) => {
   );
   await pause(600);
   await sendMainMenu(senderId);
+};
+
+const sendAccountAccessHelp = async (senderId) => {
+  await messenger.sendTextMessage(senderId, 'Pasensya na at hindi mo ma-access ang account mo. Subukan natin itong ma-recover.');
+  await pause(700);
+  await messenger.sendTypingOn(senderId);
+  await pause(900);
+  await messenger.sendTextMessage(
+    senderId,
+    '1. Pumunta sa https://qualisearchglobal.com/ at buksan ang Academic Press login page.\n' +
+    '2. Piliin ang Forgot Password at ilagay ang email na ginamit mo sa registration.\n' +
+    '3. Tingnan ang inbox at spam/junk folder para sa reset email.\n\n' +
+    'Kung hindi pa rin gumana, mag-email sa qualisearchconsulting@gmail.com kasama ang buong pangalan, registered email, at screenshot ng error. Huwag ipadala ang password o OTP mo.'
+  );
+  await pause(600);
+  await sendMainMenu(senderId, 'May iba ka pa bang concern tungkol sa account mo?');
 };
 
 const sendPublicationProcess = async (senderId) => {
