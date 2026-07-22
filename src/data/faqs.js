@@ -331,6 +331,6 @@ For privacy and proper evaluation, please send your curriculum vitae and special
 Please do not make payment until you receive official written instructions from QualiSearch Academic Press. For verification, send a screenshot of the payment request to the official email or contact number.
 84. I have another concern not listed here.
 Thank you for contacting QualiSearch. Please send your complete name, email address, and a brief description of your concern. A member of the appropriate QualiSearch team will review your inquiry.
-\`;
+`;
 
 module.exports = { faqs };
