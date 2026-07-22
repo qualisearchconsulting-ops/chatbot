@@ -1,5 +1,6 @@
 const axios = require('axios');
 const logger = require('../utils/logger');
+const { rememberAutomatedMessage } = require('./handoffService');
 
 const GRAPH_API_BASE = 'https://graph.facebook.com/v20.0';
 
@@ -39,6 +40,7 @@ const sendTextMessage = async (recipientId, text) => {
       recipientId,
       messageId: response.data.message_id,
     });
+    rememberAutomatedMessage(response.data.message_id);
 
     return response.data;
   } catch (error) {
@@ -101,6 +103,7 @@ const sendQuickReplies = async (recipientId, text, quickReplies) => {
     );
 
     logger.info('Quick replies sent', { recipientId });
+    rememberAutomatedMessage(response.data.message_id);
     return response.data;
   } catch (error) {
     logger.error('Failed to send quick replies', {
@@ -177,6 +180,7 @@ const sendGenericTemplate = async (recipientId, elements) => {
     );
 
     logger.info('Generic template sent', { recipientId });
+    rememberAutomatedMessage(response.data.message_id);
     return response.data;
   } catch (error) {
     logger.error('Failed to send generic template', {

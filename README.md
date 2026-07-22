@@ -137,5 +137,34 @@ if (text.includes('your keyword')) {
 ## 📝 Logs
 
 Log files are saved to the `logs/` directory:
+
 - `logs/combined.log` — All events
 - `logs/error.log` — Errors only
+
+## Human handoff (automatic on/off)
+
+### Web control page
+
+Set a long random `CHATBOT_ADMIN_TOKEN` in Render, deploy, then open:
+
+```text
+https://your-service-name.onrender.com/chatbot-control
+```
+
+Enter the same admin token and use the large ON/OFF button. The change takes
+effect immediately, without restarting the service. The token is kept only in
+the current browser tab. Because the runtime switch is stored in memory, a new
+deployment or service restart returns to the `CHATBOT_ENABLED` default.
+
+When you reply to a customer from Meta Business Suite/Page Inbox, the webhook
+automatically pauses chatbot replies for that customer. Each additional manual
+reply resets the timer. After `HUMAN_HANDOFF_MINUTES` (30 minutes by default),
+the chatbot resumes for that conversation. Other customers can keep using it.
+
+To disable the chatbot for everyone, set `CHATBOT_ENABLED=false` in Render and
+restart the service. Set it back to `true` and restart to enable it again.
+
+Environment variables:
+
+- `CHATBOT_ENABLED`: global startup switch; defaults to `true`.
+- `HUMAN_HANDOFF_MINUTES`: per-conversation pause time; defaults to `30`.

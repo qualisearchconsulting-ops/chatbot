@@ -1,8 +1,10 @@
 require('dotenv').config();
 const express = require('express');
+const path = require('path');
 const morgan = require('morgan');
 const logger = require('./utils/logger');
 const webhookRoutes = require('./routes/webhook');
+const chatbotControlRoutes = require('./routes/chatbotControl');
 
 const app = express();
 
@@ -20,6 +22,7 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // HTTP request logging (skip in test environment)
 if (process.env.NODE_ENV !== 'test') {
@@ -49,6 +52,12 @@ app.get('/health', (_req, res) => {
 // Facebook Messenger Webhook
 // Callback URL: https://your-domain.com/api/webhooks/facebook
 app.use('/api/webhooks/facebook', webhookRoutes);
+
+// Password-protected chatbot on/off control API and its static control page.
+app.use('/api/chatbot', chatbotControlRoutes);
+app.get('/chatbot-control', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'chatbot-control.html'));
+});
 
 // ─────────────────────────────────────────────────────────
 // 404 Handler

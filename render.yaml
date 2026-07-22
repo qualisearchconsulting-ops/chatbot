@@ -25,3 +25,5 @@ services:
         sync: false        # You fill this in Render dashboard
       - key: APP_SECRET
         sync: false        # You fill this in Render dashboard
+      - key: CHATBOT_ADMIN_TOKEN
+        sync: false        # Secret for the chatbot on/off control page

@@ -1,5 +1,11 @@
 const logger = require('../utils/logger');
 const handler = require('../handlers/messageHandler');
+const {
+  isChatbotEnabled,
+  pauseConversation,
+  isConversationPaused,
+  consumeAutomatedMessage,
+} = require('../services/handoffService');
 
 /**
  * GET /api/webhooks/facebook
@@ -87,6 +93,23 @@ const handleWebhook = (req, res) => {
  * @param {Object} event - A single messaging event from Facebook
  */
 const processEvent = async (event) => {
+  // Messenger sends Page replies back as message echoes. A reply that was not
+  // sent by this app means a person has taken over the conversation.
+  if (event.message?.is_echo) {
+    const recipientId = event.recipient?.id;
+    // App-sent echoes normally include app_id. The remembered message ID also
+    // covers webhook payloads where Meta omits it.
+    const isBotMessage = Boolean(event.message.app_id) ||
+      consumeAutomatedMessage(event.message.mid);
+
+    if (!isBotMessage && recipientId) {
+      pauseConversation(recipientId);
+    }
+
+    logger.debug('Processed message echo', { recipientId, isBotMessage });
+    return;
+  }
+
   const senderId = event.sender?.id;
 
   if (!senderId) {
@@ -95,6 +118,17 @@ const processEvent = async (event) => {
   }
 
   logger.debug('Processing event', { senderId, eventType: getEventType(event) });
+
+  const eventCanTriggerReply = Boolean(event.message || event.postback);
+  if (eventCanTriggerReply && !isChatbotEnabled()) {
+    logger.info('Chatbot is globally disabled; event ignored', { senderId });
+    return;
+  }
+
+  if (eventCanTriggerReply && isConversationPaused(senderId)) {
+    logger.info('Chatbot reply skipped during human handoff', { senderId });
+    return;
+  }
 
   // ── Text message ──────────────────────────────────
   if (event.message && event.message.text && !event.message.quick_reply) {
@@ -152,4 +186,4 @@ const getEventType = (event) => {
   return 'unknown';
 };
 
-module.exports = { verifyWebhook, handleWebhook };
+module.exports = { verifyWebhook, handleWebhook, processEvent };

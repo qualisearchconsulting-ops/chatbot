@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QualiSearch Chatbot Control</title>
+  <style>
+    :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; display: grid; place-items: center;
+      background: #f1f5f9; color: #0f172a; padding: 24px;
+    }
+    main {
+      width: min(100%, 440px); background: #fff; border: 1px solid #e2e8f0;
+      border-radius: 22px; padding: 32px; box-shadow: 0 18px 50px rgba(15, 23, 42, .1);
+    }
+    h1 { margin: 0 0 8px; font-size: 1.55rem; }
+    .subtitle { margin: 0 0 28px; color: #64748b; }
+    label { display: block; margin-bottom: 8px; font-weight: 650; }
+    .login-row { display: flex; gap: 10px; }
+    input {
+      min-width: 0; flex: 1; border: 1px solid #cbd5e1; border-radius: 12px;
+      padding: 12px 14px; font: inherit;
+    }
+    button { border: 0; border-radius: 12px; padding: 12px 18px; font: inherit; font-weight: 700; cursor: pointer; }
+    #connect { background: #0f172a; color: white; }
+    #panel { text-align: center; }
+    .status {
+      width: 112px; height: 112px; margin: 8px auto 18px; border-radius: 999px;
+      display: grid; place-items: center; font-size: 1.25rem; font-weight: 800;
+    }
+    .on { color: #166534; background: #dcfce7; border: 2px solid #86efac; }
+    .off { color: #991b1b; background: #fee2e2; border: 2px solid #fca5a5; }
+    #toggle { width: 100%; color: white; padding: 15px; font-size: 1.05rem; }
+    #toggle.turn-off { background: #dc2626; }
+    #toggle.turn-on { background: #16a34a; }
+    #message { min-height: 24px; margin: 16px 0 0; color: #64748b; font-size: .92rem; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>QualiSearch Chatbot</h1>
+    <p class="subtitle">Turn automated Messenger replies on or off.</p>
+
+    <section id="login">
+      <label for="token">Admin token</label>
+      <div class="login-row">
+        <input id="token" type="password" autocomplete="current-password" placeholder="Enter admin token">
+        <button id="connect" type="button">Open</button>
+      </div>
+    </section>
+
+    <section id="panel" class="hidden">
+      <div id="status" class="status">...</div>
+      <button id="toggle" type="button">Loading...</button>
+    </section>
+
+    <p id="message" role="status" aria-live="polite"></p>
+  </main>
+
+  <script>
+    const login = document.querySelector('#login');
+    const panel = document.querySelector('#panel');
+    const tokenInput = document.querySelector('#token');
+    const connectButton = document.querySelector('#connect');
+    const statusBadge = document.querySelector('#status');
+    const toggleButton = document.querySelector('#toggle');
+    const message = document.querySelector('#message');
+    let enabled = false;
+    let token = sessionStorage.getItem('chatbotAdminToken') || '';
+
+    const request = async (method, body) => {
+      const response = await fetch('/api/chatbot/status', {
+        method,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...(body ? { 'Content-Type': 'application/json' } : {}),
+        },
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || data.error || 'Request failed');
+      return data;
+    };
+
+    const render = () => {
+      statusBadge.textContent = enabled ? 'ON' : 'OFF';
+      statusBadge.className = `status ${enabled ? 'on' : 'off'}`;
+      toggleButton.textContent = enabled ? 'Turn chatbot OFF' : 'Turn chatbot ON';
+      toggleButton.className = enabled ? 'turn-off' : 'turn-on';
+      toggleButton.disabled = false;
+    };
+
+    const connect = async () => {
+      token = tokenInput.value.trim() || token;
+      if (!token) return;
+      message.textContent = 'Checking status...';
+      try {
+        const data = await request('GET');
+        enabled = data.enabled;
+        sessionStorage.setItem('chatbotAdminToken', token);
+        login.classList.add('hidden');
+        panel.classList.remove('hidden');
+        message.textContent = '';
+        render();
+      } catch (error) {
+        sessionStorage.removeItem('chatbotAdminToken');
+        message.textContent = error.message;
+      }
+    };
+
+    connectButton.addEventListener('click', connect);
+    tokenInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') connect();
+    });
+    toggleButton.addEventListener('click', async () => {
+      toggleButton.disabled = true;
+      message.textContent = 'Saving...';
+      try {
+        const data = await request('POST', { enabled: !enabled });
+        enabled = data.enabled;
+        render();
+        message.textContent = enabled ? 'Automated replies are now enabled.' : 'Automated replies are now disabled.';
+      } catch (error) {
+        toggleButton.disabled = false;
+        message.textContent = error.message;
+      }
+    });
+
+    if (token) connect();
+  </script>
+</body>
+</html>
