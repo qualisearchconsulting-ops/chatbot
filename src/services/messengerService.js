@@ -1,6 +1,11 @@
 const axios = require('axios');
 const logger = require('../utils/logger');
-const { rememberAutomatedMessage } = require('./handoffService');
+const {
+  AUTOMATED_MESSAGE_METADATA,
+  isChatbotEnabled,
+  isConversationPaused,
+  rememberAutomatedMessage,
+} = require('./handoffService');
 
 const GRAPH_API_BASE = 'https://graph.facebook.com/v20.0';
 
@@ -15,19 +20,34 @@ const removeEmojis = (value) => value
   .replace(/[ \t]+$/gm, '')
   .trim();
 
+const canSendAutomatedReply = (recipientId) => {
+  const allowed = isChatbotEnabled() && !isConversationPaused(recipientId);
+
+  if (!allowed) {
+    logger.info('Automated reply cancelled by chatbot control', { recipientId });
+  }
+
+  return allowed;
+};
+
 /**
  * Send a text message reply to a user via the Messenger Send API.
  * @param {string} recipientId - The PSID (Page-Scoped ID) of the recipient
  * @param {string} text - The text message to send
  */
 const sendTextMessage = async (recipientId, text) => {
+  if (!canSendAutomatedReply(recipientId)) return { skipped: true };
+
   try {
     const sanitizedText = removeEmojis(text);
     const response = await axios.post(
       `${GRAPH_API_BASE}/me/messages`,
       {
         recipient: { id: recipientId },
-        message: { text: sanitizedText },
+        message: {
+          text: sanitizedText,
+          metadata: AUTOMATED_MESSAGE_METADATA,
+        },
         messaging_type: 'RESPONSE',
       },
       {
@@ -81,6 +101,8 @@ const sendTypingOn = async (recipientId) => {
  * @param {Array<{content_type: string, title: string, payload: string}>} quickReplies
  */
 const sendQuickReplies = async (recipientId, text, quickReplies) => {
+  if (!canSendAutomatedReply(recipientId)) return { skipped: true };
+
   try {
     const sanitizedText = removeEmojis(text);
     const sanitizedQuickReplies = quickReplies.map((quickReply) => ({
@@ -94,6 +116,7 @@ const sendQuickReplies = async (recipientId, text, quickReplies) => {
         message: {
           text: sanitizedText,
           quick_replies: sanitizedQuickReplies,
+          metadata: AUTOMATED_MESSAGE_METADATA,
         },
         messaging_type: 'RESPONSE',
       },
@@ -158,6 +181,8 @@ const configureMessengerProfile = async () => {
  * @param {Array} elements - Array of card elements
  */
 const sendGenericTemplate = async (recipientId, elements) => {
+  if (!canSendAutomatedReply(recipientId)) return { skipped: true };
+
   try {
     const response = await axios.post(
       `${GRAPH_API_BASE}/me/messages`,
@@ -171,6 +196,7 @@ const sendGenericTemplate = async (recipientId, elements) => {
               elements,
             },
           },
+          metadata: AUTOMATED_MESSAGE_METADATA,
         },
         messaging_type: 'RESPONSE',
       },

@@ -2,6 +2,7 @@ const logger = require('../utils/logger');
 
 const DEFAULT_HANDOFF_MINUTES = 30;
 const AUTOMATED_MESSAGE_TTL_MS = 5 * 60 * 1000;
+const AUTOMATED_MESSAGE_METADATA = 'QUALISEARCH_CHATBOT';
 
 const pausedConversations = new Map();
 const automatedMessages = new Map();
@@ -65,6 +66,7 @@ const resetForTests = () => {
 };
 
 module.exports = {
+  AUTOMATED_MESSAGE_METADATA,
   isChatbotEnabled,
   setChatbotEnabled,
   pauseConversation,

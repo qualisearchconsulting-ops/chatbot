@@ -11,14 +11,19 @@ jest.mock('../utils/logger', () => ({
 
 const axios = require('axios');
 const messenger = require('./messengerService');
+const handoff = require('./handoffService');
 
 describe('emoji-free Messenger replies', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    handoff.resetForTests();
+  });
 
   test('removes emojis from text messages', async () => {
     await messenger.sendTextMessage('sender-1', 'Hello! 👋 Payment is ready ✅');
 
     expect(axios.post.mock.calls[0][1].message.text).toBe('Hello! Payment is ready');
+    expect(axios.post.mock.calls[0][1].message.metadata).toBe('QUALISEARCH_CHATBOT');
   });
 
   test('removes emojis from quick-reply prompts and titles', async () => {
@@ -55,5 +60,14 @@ describe('emoji-free Messenger replies', () => {
         expect.objectContaining({ payload: 'PEER_REVIEW_PROCESS' }),
       ])
     );
+  });
+
+  test('cancels an outgoing reply when a human takes over during processing', async () => {
+    handoff.pauseConversation('sender-1');
+
+    const result = await messenger.sendTextMessage('sender-1', 'This should not be sent');
+
+    expect(result).toEqual({ skipped: true });
+    expect(axios.post).not.toHaveBeenCalled();
   });
 });

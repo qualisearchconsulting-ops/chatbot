@@ -28,7 +28,12 @@ describe('webhook human handoff', () => {
     await processEvent({
       sender: { id: 'page-1' },
       recipient: { id: 'customer-1' },
-      message: { is_echo: true, mid: 'manual-mid', text: 'Human reply' },
+      message: {
+        is_echo: true,
+        mid: 'manual-mid',
+        app_id: 'meta-business-suite-app',
+        text: 'Human reply',
+      },
     });
     await processEvent({
       sender: { id: 'customer-1' },
@@ -45,6 +50,26 @@ describe('webhook human handoff', () => {
       sender: { id: 'page-1' },
       recipient: { id: 'customer-1' },
       message: { is_echo: true, mid: 'bot-mid', text: 'Bot reply' },
+    });
+    await processEvent({
+      sender: { id: 'customer-1' },
+      recipient: { id: 'page-1' },
+      message: { mid: 'incoming-mid', text: 'Hello' },
+    });
+
+    expect(handler.handleTextMessage).toHaveBeenCalledWith('customer-1', 'Hello');
+  });
+
+  test('bot metadata identifies an automated echo before its message ID is remembered', async () => {
+    await processEvent({
+      sender: { id: 'page-1' },
+      recipient: { id: 'customer-1' },
+      message: {
+        is_echo: true,
+        mid: 'early-bot-mid',
+        metadata: 'QUALISEARCH_CHATBOT',
+        text: 'Bot reply',
+      },
     });
     await processEvent({
       sender: { id: 'customer-1' },

@@ -1,6 +1,7 @@
 const logger = require('../utils/logger');
 const handler = require('../handlers/messageHandler');
 const {
+  AUTOMATED_MESSAGE_METADATA,
   isChatbotEnabled,
   pauseConversation,
   isConversationPaused,
@@ -97,9 +98,9 @@ const processEvent = async (event) => {
   // sent by this app means a person has taken over the conversation.
   if (event.message?.is_echo) {
     const recipientId = event.recipient?.id;
-    // App-sent echoes normally include app_id. The remembered message ID also
-    // covers webhook payloads where Meta omits it.
-    const isBotMessage = Boolean(event.message.app_id) ||
+    // Business Suite manual replies can also include app_id. Only the metadata
+    // added by our Send API calls (or a remembered message ID) identifies the bot.
+    const isBotMessage = event.message.metadata === AUTOMATED_MESSAGE_METADATA ||
       consumeAutomatedMessage(event.message.mid);
 
     if (!isBotMessage && recipientId) {
